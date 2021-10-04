@@ -1,15 +1,20 @@
 package com.gebotech.crudexample.controller;
 
+import com.gebotech.crudexample.exception.TokenRefreshException;
 import com.gebotech.crudexample.model.ERole;
+import com.gebotech.crudexample.model.RefreshToken;
 import com.gebotech.crudexample.model.Role;
 import com.gebotech.crudexample.model.User;
 import com.gebotech.crudexample.payload.request.LoginRequest;
 import com.gebotech.crudexample.payload.request.SignupRequest;
+import com.gebotech.crudexample.payload.request.TokenRefreshRequest;
 import com.gebotech.crudexample.payload.response.JwtResponse;
 import com.gebotech.crudexample.payload.response.MessageResponse;
+import com.gebotech.crudexample.payload.response.TokenRefreshResponse;
 import com.gebotech.crudexample.repository.RoleRepository;
 import com.gebotech.crudexample.repository.UserRepository;
 import com.gebotech.crudexample.security.jwt.JwtUtils;
+import com.gebotech.crudexample.security.services.RefreshTokenService;
 import com.gebotech.crudexample.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -46,25 +51,43 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Autowired
+    RefreshTokenService refreshTokenService;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
-        );
+
+        Authentication authentication = authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
+
+        String jwt = jwtUtils.generateJwtToken(userDetails);
+
+        List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                roles));
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
+
+        return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken(), userDetails.getId(),
+                userDetails.getUsername(), userDetails.getEmail(), roles));
+    }
+
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtUtils.generateTokenFromUsername(user.getUsername());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                })
+                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
+                        "Refresh token is not in database!"));
     }
 
     @PostMapping("/signup")
