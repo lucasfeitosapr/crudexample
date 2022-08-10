@@ -5,8 +5,7 @@ import com.gebotech.crudexample.model.ERole;
 import com.gebotech.crudexample.model.RefreshToken;
 import com.gebotech.crudexample.model.Role;
 import com.gebotech.crudexample.model.User;
-import com.gebotech.crudexample.payload.request.LoginRequest;
-import com.gebotech.crudexample.payload.request.SignupRequest;
+import com.gebotech.crudexample.model.request.UserRequest;
 import com.gebotech.crudexample.payload.request.TokenRefreshRequest;
 import com.gebotech.crudexample.payload.response.JwtResponse;
 import com.gebotech.crudexample.payload.response.MessageResponse;
@@ -55,10 +54,10 @@ public class AuthController {
     RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody UserRequest userRequest) {
 
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+                .authenticate(new UsernamePasswordAuthenticationToken(userRequest.getUsername(), userRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -91,25 +90,25 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest userRequest) {
+        if (userRepository.existsByUsername(userRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Username is already taken!"));
         }
 
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+        if (userRepository.existsByEmail(userRequest.getEmail())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
         // Create new user's account
-        User user = new User(signUpRequest.getUsername(),
-                signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()));
+        User user = new User(userRequest.getUsername(),
+                userRequest.getEmail(),
+                encoder.encode(userRequest.getPassword()));
 
-        Set<String> strRoles = signUpRequest.getRole();
+        Set<String> strRoles = userRequest.getRoles();
         Set<Role> roles = new HashSet<>();
 
         if (strRoles == null) {
