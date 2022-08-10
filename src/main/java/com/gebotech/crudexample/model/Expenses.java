@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.gebotech.crudexample.model.request.ExpenseRequest;
 import com.gebotech.crudexample.model.response.ExpenseResponse;
 import lombok.*;
+import org.apache.tomcat.jni.Local;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -12,7 +13,9 @@ import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -74,11 +77,15 @@ public class Expenses {
     }
 
     public static Expenses toEntity(ExpenseRequest request) {
+        //@TODO: maybe this can be changed after we add the front end logic. For now I don't want to deal with dates on postman.
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime expireAt = LocalDateTime.parse(request.getExpireAt(), formatter);
+
         return new ExpensesBuilder()
                 .name(request.getName())
                 .payed(request.isPayed())
                 .installments(request.getInstallments())
-                .expireAt(request.getExpireAt())
+                .expireAt(expireAt)
                 .recurrent(request.isRecurrent())
                 .value(request.getValue())
                 .build();

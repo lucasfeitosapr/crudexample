@@ -14,7 +14,7 @@ public class ExpenseRequest {
     private String name;
     private boolean payed;
     private int installments;
-    private LocalDateTime expireAt;
+    private String expireAt;
     private boolean recurrent;
     private BigDecimal value;
     private long userId;

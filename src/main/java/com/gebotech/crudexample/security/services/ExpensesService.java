@@ -58,19 +58,33 @@ public class ExpensesService {
         return expensesRepository.getExpensesByPayed(unpayed);
     }
 
+    //@TODO: Break this in two steps: paid and unpaid.
     public TotalAmountDueResumeResponse getTotalAmountDueResume() {
 
         List<Expenses> unpaidExpenses = expensesRepository.getExpensesByPayed(false);
+        List<Expenses> paidExpenses = expensesRepository.getExpensesByPayed(true);
+
         HashMap<String, BigDecimal> unpaidNames = new HashMap<>();
+        HashMap<String, BigDecimal> paid = new HashMap<>();
 
         BigDecimal totalAmountDue = new BigDecimal(0);
+        BigDecimal totalPaid = new BigDecimal(0);
 
         for (Expenses expense: unpaidExpenses) {
             totalAmountDue = totalAmountDue.add(expense.getValue());
             unpaidNames.put(expense.getName(), expense.getValue());
         }
 
-        return TotalAmountDueResumeResponse.builder().totalDue(totalAmountDue).unpaid(unpaidNames).build();
+        for (Expenses expense: paidExpenses) {
+            totalPaid = totalPaid.add(expense.getValue());
+            paid.put(expense.getName(), expense.getValue());
+        }
+
+        return TotalAmountDueResumeResponse.builder()
+                .totalDue(totalAmountDue)
+                .totalPaid(totalPaid)
+                .paid(paid)
+                .unpaid(unpaidNames).build();
 
     }
 }

@@ -13,7 +13,10 @@ import java.util.Set;
 public class TotalAmountDueResumeResponse {
 
     private BigDecimal totalDue;
+    private BigDecimal totalPaid;
     private String reminiscentAmount;
     private HashMap<String, BigDecimal> unpaid;
+    private HashMap<String, BigDecimal> paid;
+
 
 }
